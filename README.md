@@ -253,7 +253,18 @@ Las capacidades dependen del perfil, tamaños de solicitud y respuesta, y coefic
 | No hay detección o recuperación | Puede que no se alcanzara el umbral o que faltara tiempo de observación; revisa las gráficas y los datos. |
 | El experimento tarda | Procesa miles de corridas. Observa el avance y no cierres la aplicación. |
 
-## 10. Estructura del proyecto
+## 10. Checklist del cronograma
+
+Los cuatro módulos del cronograma están implementados en el simulador:
+
+- **Módulo de tráfico normal — implementado en** [`aplicacion/simulacion/trafico_normal.py`](aplicacion/simulacion/trafico_normal.py): define el nivel de usuarios y la demanda legítima de referencia.
+- **Módulo de tráfico malicioso (bots) — implementado en** [`aplicacion/simulacion/trafico_malicioso.py`](aplicacion/simulacion/trafico_malicioso.py): genera la carga virtual de bots según el patrón y nivel definidos.
+- **Módulo del servidor simulado — implementado en** [`aplicacion/simulacion/servidor_simulado.py`](aplicacion/simulacion/servidor_simulado.py): calcula capacidades, utilización, saturación, solicitudes atendidas y estado del servidor modelado.
+- **Módulo de detección y mitigación — implementado en** [`aplicacion/simulacion/deteccion_mitigacion.py`](aplicacion/simulacion/deteccion_mitigacion.py): aplica la regla de detección y los efectos matemáticos de las estrategias del protocolo.
+
+La coordinación de estos módulos durante cada segundo de las corridas factoriales se encuentra en [`aplicacion/simulacion/modelo_protocolo.py`](aplicacion/simulacion/modelo_protocolo.py). El motor que organiza las condiciones y guarda sus resultados está en [`aplicacion/ejecutor_experimental.py`](aplicacion/ejecutor_experimental.py).
+
+## 11. Estructura del proyecto
 
 ```text
 principal.py                         Inicio de la aplicación
