@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.py[cod]
+logs/*.log
+data/profiles/*.json
+data/profiles/*.txt
+data/reports/*.csv
+data/reports/*.txt
