@@ -1,130 +1,273 @@
-# Inventario SSH
+# Manual de usuario: Simulador de resiliencia y capacidad de servidores
 
-Aplicación de escritorio en Python para conectarse por SSH a un servidor Linux, consultar sus especificaciones y guardar el resultado en un archivo `.txt` en el dispositivo anfitrión.
+Este manual explica cómo instalar y utilizar el simulador, qué significa cada opción y cómo leer los resultados. No necesitas saber programación ni administración de redes para seguir el recorrido de demostración.
 
-## Instalación
+## 1. ¿Qué hace el sistema?
+
+El programa crea un perfil de un servidor Linux y permite estudiar, mediante un modelo matemático local, cómo podría responder ante distintas cantidades y patrones de solicitudes. Puedes observar saturación y uso estimado de CPU y RAM, comparar mitigaciones y registrar detección y recuperación.
+
+Hay dos modos:
+
+- **Explorador interactivo:** permite configurar y ejecutar un escenario individual, ver las gráficas en vivo y abrir un dashboard de resultados.
+- **Experimento factorial del protocolo:** ejecuta una matriz fija de condiciones repetidas y genera resúmenes y bitácoras para análisis académico. Incluye pilotaje y lote formal.
+
+**El sistema no genera ataques, paquetes ni solicitudes contra el servidor real.** SSH solo recopila diagnósticos de lectura; los bots y su tráfico existen únicamente como valores del modelo. Los resultados son estimaciones matemáticas y no mediciones obtenidas al cargar un servidor real.
+
+## 2. Requisitos e instalación
+
+Necesitas Python 3.10 o posterior, Tkinter y las dependencias de `requirements.txt`. Para crear un perfil mediante SSH también necesitas acceso a un servidor Linux. Para aprender o explorar, basta con el perfil de demostración.
+
+Abre una terminal en la carpeta del proyecto.
+
+**Windows (PowerShell):**
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
+python principal.py
 ```
 
-## Ejecución
+**Linux o macOS:**
 
-```powershell
-python main.py
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python principal.py
 ```
 
-Completa servidor/IP, puerto, usuario y contraseña, o selecciona una clave privada SSH. Pulsa **Conectar y obtener información**. Cuando el informe esté disponible, pulsa **Cargar al dispositivo anfitrión** y elige dónde guardar el `.txt`.
+En algunas distribuciones Linux Tkinter se instala aparte (por ejemplo, mediante el paquete `python3-tk`). Si `python` no existe, usa `python3`. Para volver a abrir el programa, activa el entorno virtual y ejecuta `python principal.py` desde la carpeta del proyecto.
 
-La contraseña solo se utiliza durante la conexión y no se escribe en el informe.
+## 3. El flujo de trabajo
 
-## Requisitos del servidor
+La ventana contiene tres pestañas: **Conexión**, **Perfil** y **Simulación**. Primero obtén o carga un perfil, revísalo y luego continúa a la simulación.
 
-# Simulador de Resiliencia y Capacidad de Servidores
+### 3.1 Conexión: elegir un perfil
 
-Aplicación académica de escritorio para estudiar capacidad y resiliencia mediante un perfil SSH de solo lectura y un modelo matemático ejecutado completamente en el equipo anfitrión.
+Tienes tres opciones:
 
-## Seguridad y alcance
+1. **Modo demostración:** carga un servidor ficticio y no realiza conexiones. Es la mejor opción para comenzar.
+2. **Cargar perfil JSON:** importa un perfil guardado anteriormente; tampoco se conecta por SSH.
+3. **Conectar / Obtener perfil:** consulta un servidor Linux por SSH. Completa host o dirección IP, puerto (normalmente `22`), usuario y método de autenticación. Si eliges contraseña, introdúcela en el campo correspondiente; si eliges clave, examina y selecciona el archivo de clave privada.
 
-La aplicación **no es un generador DDoS**. No usa `socket`, `requests`, `urllib`, `scapy`, `ping`, `curl`, `wget`, `iperf`, `ab` ni `wrk` para generar carga. El servidor remoto solo recibe comandos fijos de diagnóstico: `uname`, `hostname`, `/proc`, `lscpu`, `free`, `df`, `lsblk` e `ip`. No se aceptan comandos escritos por el usuario.
+La conexión ejecuta comandos de diagnóstico fijos para recoger información del sistema, CPU, memoria, discos y red. No permite enviar comandos arbitrarios. La contraseña solo se utiliza durante la conexión y no se guarda en el perfil.
 
-La conexión carga las claves del `known_hosts` del usuario y rechaza hosts desconocidos. Verifica la huella del servidor por un canal confiable y agrégala a `known_hosts` antes de conectar. La contraseña solo vive durante la conexión, se borra de la interfaz al terminar y nunca se guarda en perfiles, reportes o logs.
+Por seguridad, el programa rechaza hosts que no estén reconocidos en `known_hosts`. Antes de conectar por primera vez, verifica la huella del servidor por un canal confiable y registra su identidad en `known_hosts`. No aceptes una huella que no hayas verificado. Si falla la conexión, comprueba también el host, puerto, usuario y credenciales.
 
-## Instalación y ejecución
+### 3.2 Perfil: revisar y guardar
 
-Python 3.11+:
+La pestaña **Perfil** presenta el resumen que utilizará el modelo y una tabla con discos e interfaces de red. Revisa especialmente CPU, memoria disponible y velocidad de red: afectan las estimaciones de capacidad.
 
-```powershell
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-python main.py
-```
+- **Guardar perfil:** elige una carpeta. Se crean un archivo JSON (para importar más tarde) y un TXT (para leerlo fácilmente).
+- **Volver:** regresa a Conexión.
+- **Continuar a simulación:** abre Simulación con el perfil actual.
 
-Dependencias directas: `paramiko` para SSH y `matplotlib` para gráficas. Tkinter normalmente viene con Python para Windows; en Linux puede requerir el paquete `python3-tk`.
+Si el perfil tiene valores incompletos o poco representativos, los resultados también pueden serlo. La opción de demostración es ficticia y no describe un equipo real.
 
-## Flujo de uso
+## 4. Explorador interactivo
 
-1. En **CONEXIÓN**, usa `CONECTAR / OBTENER PERFIL` con un host autorizado y un usuario con permisos de lectura.
-2. Revisa el perfil en **PERFIL** y guárdalo como JSON y TXT.
-3. Usa `CONTINUAR A SIMULACIÓN` para configurar usuarios, duración, requests, bytes, escenario y mitigación.
-4. Ejecuta la simulación local. Las gráficas muestran tráfico, CPU, RAM, saturación y usuarios.
-5. Exporta CSV o genera el reporte TXT en `data/reports/`.
+Este modo se encuentra en la pestaña **Simulación** y permite ejecutar una condición a la vez. Los botones de arriba **Pilotaje ×10** y **Lote formal ×30** pertenecen al experimento factorial, no al explorador.
 
-## Modo demostración e importar perfiles
+### 4.1 Parámetros de carga
 
-`MODO DEMOSTRACIÓN` carga un perfil ficticio de 4 CPU, 8 GB de RAM y red de 1 Gbps sin conectarse a ningún servidor. También puedes cargar un `.json` creado previamente desde `CARGAR PERFIL JSON`.
+Los campos de la izquierda controlan la demanda virtual:
 
-Los perfiles nuevos se guardan en `data/profiles/`; los reportes y CSV en `data/reports/`; el log técnico en `logs/app.log`.
+| Campo | Explicación |
+|---|---|
+| **Usuarios iniciales** | Usuarios virtuales al comienzo. No puede superar el máximo. |
+| **Usuarios máximos** | Límite al que puede llegar la curva de usuarios. |
+| **Duración (s)** | Tiempo total simulado. |
+| **Intensidad base (req/s)** | Intensidad base de solicitudes. Si es cero, la demanda se calcula a partir de usuarios y solicitudes por usuario. |
+| **Inicio ataque (s)** | Tiempo de referencia de la fase normal antes del aumento de carga. |
+| **Tiempo detección (s)** | Demora configurada antes de abrir la ventana de detección del explorador. |
+| **Ancho banda Mbps (0=perfil)** | Ancho de banda empleado por el modelo. Cero significa usar el valor derivado del perfil. |
+| **Requests / usuario / s** | Solicitudes virtuales por usuario por segundo. |
+| **Bytes / request** y **Bytes / response** | Tamaño estimado de solicitud y respuesta; afectan el tráfico calculado. |
+| **Latencia objetivo (ms)** | Referencia para la latencia estimada. |
+| **Umbral anomalía %** | Nivel a partir del cual el modelo puede considerar anómala la carga. |
+| **Rampa repentina (s)** | Tiempo que usa el escenario Repentino para subir al máximo. |
 
-## Modelo
+Si aparece un mensaje de configuración inválida, corrige los valores señalados. Por ejemplo, la duración debe ser positiva, los bytes no pueden ser negativos y los usuarios iniciales no pueden superar a los máximos.
 
-El modelo convierte el perfil en capacidades estimadas de CPU, memoria y red. El tráfico se calcula con:
+### 4.2 Escenarios
 
-`usuarios x requests_por_usuario x (bytes_request + bytes_response) x 8 / 1,000,000`
+- **Gradual:** aumenta progresivamente.
+- **Repentino:** llega rápido al máximo, según la rampa configurada.
+- **Pulsante:** alterna niveles altos y bajos.
+- **Spike:** empieza con un pico breve y luego mantiene un nivel menor.
+- **Personalizado:** aumenta según los límites configurados.
 
-La simulación interactiva permite explorar escenarios de manera local. Los botones **PILOTAJE ×10** y **LOTE FORMAL ×30** ejecutan, de forma independiente y reproducible, el diseño factorial descrito a continuación; las corridas experimentales no abren conexiones SSH.
+Son patrones matemáticos de carga simulada, no bots o personas reales.
 
-## Experimento factorial del protocolo
+### 4.3 Capas de mitigación
 
-El ejecutor usa el perfil medido (P1) y crea P2 derivado, inicialmente con CPU lógica x4 y RAM x2. Si P2 conserva el cuello de botella de P1, escala ese recurso hasta que el cuello de botella sea distinto; ambos perfiles derivados se guardan en la configuración JSON para revisión. Combina 5 niveles de usuarios (100, 500, 1,000, 5,000 y 10,000), 4 escenarios (Gradual, Súbito, Pulsado y Spike), 5 estrategias (Ninguna, Limitación de tasa, Filtrado, Escalamiento y CAPTCHA) y 2 tiempos de confirmación (5 y 20 s): 400 condiciones con carga y 2 controles, 402 en total. Cada condición se repite 30 veces (12,060 ejecuciones). La interfaz ofrece un pilotaje de 10 repeticiones y el lote formal de 30; revisa el perfil derivado y calibra `ProtocolParameters` durante el pilotaje antes de lanzar la corrida formal.
+Marca una o varias capas. Si no marcas ninguna, se calcula el escenario sin defensa activa. El botón **¿Cómo funciona?** describe las capas seleccionadas.
 
-## Correspondencia con el cronograma de desarrollo
+| Capa | Qué representa en el modelo |
+|---|---|
+| **Rate Limiting** | Limita solicitudes procesadas por segundo. |
+| **Rate-Based Ban** | Bloquea fuentes virtuales tras superar un umbral en varias evaluaciones. |
+| **Blacklisting** | Identifica y bloquea usuarios sospechosos durante un periodo modelado. |
+| **CAPTCHA / Challenge** | Envía parte del tráfico a un reto con probabilidad de resolución y demora estimada. |
+| **WAF / Filtrado L7** | Filtra tráfico clasificado como malicioso e incorpora errores de clasificación, CPU y latencia. |
+| **Bot Management** | Clasifica patrones virtuales y bloquea o desafía parte de los bots. |
+| **Auto Scaling** | Añade instancias modeladas hasta el máximo configurado. |
+| **CDN / Caching** | Atiende una proporción de solicitudes desde caché, sin enviarlas al origen. |
+| **Load Balancing** | Distribuye matemáticamente la carga entre servidores modelados. |
+| **Edge / Scrubbing** | Filtra una parte del tráfico antes del origen, según porcentaje y capacidad. |
 
-El motor formal está dividido en los cuatro módulos del cronograma y `ProtocolSimulation` solo los coordina:
+Los campos **Límite req/s**, **Cache hit %**, **Edge filtrado %** y **Ventana anomalía** ajustan valores de estas capas. Los porcentajes deben estar entre 0 y 100.
 
-| Hito | Componente | Responsabilidad |
-|---|---|---|
-| Tráfico normal | `app/simulation/normal_traffic.py` | Calcula usuarios y demanda legítimos de referencia. |
-| Tráfico malicioso (bots) | `app/simulation/malicious_traffic.py` | Genera bots virtuales con patrones gradual, súbito, pulsado y spike; aplica ruido reproducible. |
-| Servidor simulado | `app/simulation/simulated_server.py` | Calcula capacidades por recurso, inercia, saturación, solicitudes atendidas y estados. |
-| Detección y mitigación | `app/simulation/detection_mitigation.py` | Confirma umbral y aplica las cuatro mitigaciones del diseño factorial. |
+### 4.4 Presets
 
-Los niveles del diseño y parámetros se mantienen en `experiment_design.py` y `protocol_parameters.py`. El motor integrado anterior sigue disponible como explorador de escritorio; el lote factorial usa estos módulos y las condiciones exactas del protocolo.
+Un preset marca un grupo de capas; puedes cambiarlo después:
 
-Cada ejecución usa pasos de 1 s y fases de 60 s normal, 120 s de ataque simulado y 120 s de recuperación. El modelo usa `C_cpu = h / 0.005`, `C_ram = RAM_disponible / (0.05 × 0.5)`, `C_red = Mbps × 1,000,000 / 160,000` y `C_con = 256 × h / 0.05`; la capacidad estimada es el mínimo de las cuatro capacidades. La utilización evoluciona con inercia `u(t+1) = u(t) + (ρ(t) - u(t))/10`. El ruido multiplicativo normal tiene desviación de 5% y se limita a ±15%.
+- **Protección básica:** Rate Limiting.
+- **Protección web:** WAF, Rate Limiting y CAPTCHA.
+- **Protección avanzada:** Edge, WAF, Bot Management y Rate Limiting.
+- **Alta disponibilidad:** Edge, CDN, Load Balancing y Auto Scaling.
+- **Defensa multicapa:** todas las capas.
 
-La demanda virtual es `D(t) = 0.2 × [U_n + U_a(t) × φ]`, donde `U_n` equivale al 20% de la capacidad estimada, `U_a(t)` es el pico de usuarios del factor F2 por la forma temporal del escenario y `φ` es el efecto de la estrategia (1 sin mitigación). La simulación nunca convierte esa demanda en paquetes ni solicitudes de red.
+El preset solo cambia las opciones del modelo. No instala ni configura defensas en servidores reales.
 
-En los 120 segundos de ataque, `g(t)` es `t/120` para Gradual, `1` para Súbito, alterna `1` y `0.25` en pulsos de 10 s para Pulsado, y vale `1` durante 10 s seguido de `0.25` para Spike. La detección se registra como segundos desde el inicio del ataque; la recuperación, como segundos desde el fin del ataque. La bitácora marca las fases `DETECTION` y `MITIGATION` además de las fases normal, ataque y recuperación.
+### 4.5 Ejecutar y controlar
 
-Limitación de tasa aplica φ=0.5, filtrado φ=0.3, CAPTCHA φ=0.4 y escalamiento multiplica las cuatro capacidades por 2. La confirmación de detección requiere saturación ≥70% por 5 o 20 s consecutivos. Los estados son NORMAL (<70%), HIGH_LOAD (70–<90%), SATURATION (≥90% o sobrecapacidad por menos de 10 s) y SIMULATED_COLLAPSE (sobrecapacidad durante al menos 10 s). La recuperación requiere saturación <70% durante 10 s consecutivos y se censura al terminar los 120 s de observación.
+1. Confirma que el perfil sea el que deseas estudiar.
+2. Ajusta los parámetros y el escenario.
+3. Selecciona las mitigaciones y, si quieres, aplica un preset.
+4. Pulsa **Iniciar exploración**.
+5. Observa las gráficas, el informe en vivo y el registro de eventos.
+6. **Pausar** detiene temporalmente la ejecución; usa **Continuar** para reanudar.
+7. **Detener** termina antes de la duración prevista. El resultado incluye solo las muestras recogidas hasta ese momento.
+8. **Reiniciar** borra las muestras visibles para comenzar otra ejecución.
 
-La carpeta `data/reports/` recibe tres artefactos con sello de tiempo: `experimento_resumen_*.csv` (una fila por corrida), `experimento_bitacora_*.csv.gz` (la bitácora CSV por segundo comprimida; 3.6 millones de filas en el experimento formal) y `experimento_configuracion_*.json` (factores, parámetros y perfiles P1/P2). Si el perfil no incluye velocidad de interfaz, el modelo declara y registra el valor de referencia de 100 Mbps; debe verificarse o sustituirse y congelarse durante el pilotaje. P2 y los coeficientes son supuestos iniciales del protocolo y deben registrarse/calibrarse en el pilotaje antes de interpretar resultados.
+El registro puede mostrar detección, activación de mitigación y recuperación según las reglas del modelo.
 
-También se puede ejecutar desde terminal: `python -m app.experiment_runner --profile data/profiles/perfil.json`. Para un piloto de 10 repeticiones, agrega `--repetitions 10`; el experimento formal usa 30 por defecto. Si no se indica `--profile`, se usa el perfil demostrativo.
+### 4.6 Comparar mitigaciones
 
-Todos los resultados son estimaciones. No sustituyen una prueba de carga controlada y autorizada.
+Pulsa **Comparar mitigaciones** para volver a ejecutar el mismo escenario sin mitigación, con cada capa por separado y con todas combinadas. Se abre una tabla con saturación, CPU, RAM, latencia, solicitudes bloqueadas y recuperación. Es una comparación del modelo en condiciones equivalentes, no una evaluación de productos reales.
 
-## Mitigaciones del explorador interactivo
+### 4.7 Dashboard interactivo
 
-El simulador permite seleccionar individualmente o combinar: Rate Limiting, Rate-Based Ban, Blacklisting, CAPTCHA/Challenge, WAF de capa 7, Bot Management, Auto Scaling, CDN/Caching, Load Balancing y Edge/Scrubbing. También incluye presets de protección básica, web, avanzada, alta disponibilidad y defensa multicapa.
+Al finalizar una ejecución con datos, se abre el dashboard. Incluye saturación máxima, CPU y RAM máximas, detección, recuperación, latencia máxima y estado final. Sus cuatro gráficas muestran:
 
-Estas capas ampliadas pertenecen al explorador interactivo. El lote factorial del protocolo usa exclusivamente sus cinco niveles: ninguna, limitación de tasa, filtrado, escalamiento y CAPTCHA.
+- CPU y RAM estimadas durante la simulación.
+- Saturación y umbral configurado.
+- Solicitudes generadas y procesadas por segundo.
+- Tráfico generado y tráfico que llega al origen.
 
-Cada capa tiene una función distinta. Rate Limiting aplica una capacidad máxima de requests/s; Rate-Based Ban usa evaluaciones consecutivas, fuentes abstractas y expiración; Blacklisting bloquea usuarios sospechosos; CAPTCHA usa una probabilidad de resolución y latencia adicional; WAF separa tráfico legítimo, sospechoso y malicioso e incorpora falsos positivos/negativos; Bot Management clasifica comportamiento sintético; Auto Scaling añade instancias solo por intervalos cuando la carga supera capacidad; CDN atiende `requests_generadas x cache_hit_ratio` sin llegar al origen; Load Balancing distribuye capacidad modelada; Edge filtra tráfico antes del origen con capacidad y porcentaje configurables.
+**Cómo leer los valores:**
 
-El orden conceptual de la combinación es Edge, CDN, WAF, Bot Management, Ban/Blacklist/Challenge, Rate Limiting, Auto Scaling y Load Balancing. Las métricas distinguen tráfico generado, tráfico al origen, requests limitadas, bloqueadas, cacheadas y procesadas, además de usuarios legítimos preservados y falsos positivos.
+- **Saturación** es el mayor uso relativo estimado entre recursos modelados; no significa que un servidor real haya caído.
+- **Detección** indica el segundo simulado en que el modelo reconoce una anomalía. “No detectada” significa que no se cumplieron las condiciones dentro del tiempo observado.
+- **Mitigación** se activa dentro del modelo; no cambia la configuración del servidor real.
+- **Recuperación** indica cuándo la carga vuelve por debajo del umbral de carga alta después de activar una defensa. “No alcanzada” significa que no se observó antes del final.
+- **Estado final** describe el último segundo (por ejemplo, NORMAL, CARGA ALTA, SATURACIÓN, MITIGACIÓN ACTIVA o RECUPERADO).
+- Las solicitudes limitadas, bloqueadas o atendidas desde caché se contabilizan de forma distinta según las capas elegidas.
 
-La detección usa una línea base de requests normales, desviación de carga, saturación y una ventana de evaluaciones consecutivas; no depende únicamente de `saturation > 70%`. La CPU, RAM, red y capacidad de instancias parten del `ServerProfile` seleccionado.
+Desde el dashboard puedes pulsar **Exportar CSV** o **Generar reporte TXT**. Los mismos botones están en la pestaña Simulación después de ejecutar.
 
-## Limitaciones del modelo
+## 5. Experimento factorial del protocolo
 
-Las fuentes, bots, clientes, distribución de balanceo, resolución de challenges y comportamiento de WAF son entidades abstractas generadas localmente. No representan IPs reales, reglas reales ni una infraestructura cloud concreta. Las capacidades son estimaciones matemáticas parametrizadas; P2 también es un perfil derivado. Los resultados describen el modelo, no el rendimiento probado de un servidor real. El simulador no sustituye una prueba de carga autorizada ni una solución profesional de protección DDoS.
+Los botones **Pilotaje ×10** y **Lote formal ×30** ejecutan la matriz definida en el protocolo. No usan los campos del explorador para construir sus factores.
 
-## Estructura
+### 5.1 Factores y volumen
+
+El diseño combina dos perfiles (P1 y P2), cinco niveles de usuarios (100, 500, 1,000, 5,000 y 10,000), cuatro escenarios (Gradual, Súbito, Pulsado y Spike), cinco estrategias (Ninguna, Limitación de tasa, Filtrado, Escalamiento y CAPTCHA) y dos confirmaciones de detección (5 y 20 segundos). Añade un control sin ataque por cada perfil. En total son 402 condiciones por repetición:
+
+- **Pilotaje ×10:** 4,020 corridas.
+- **Lote formal ×30:** 12,060 corridas.
+
+Cada corrida simula 60 segundos normales, 120 segundos de ataque y 120 segundos de observación de recuperación, en pasos de un segundo. Las corridas usan semillas reproducibles. El procesamiento puede tardar; observa el avance y no cierres la aplicación mientras se ejecuta.
+
+P1 es el perfil que cargaste. P2 es un perfil derivado, inicialmente con CPU lógica ×4 y RAM ×2. El ejecutor intenta que su cuello de botella modelado difiera del de P1 y puede ajustar el perfil derivado; revisa en la configuración JSON qué valores quedaron finalmente usados. Es una comparación matemática, no una máquina física adicional.
+
+### 5.2 Orden sugerido
+
+1. Carga o importa el perfil que será P1.
+2. Ejecuta **Pilotaje ×10**.
+3. Revisa los resultados y la configuración JSON; verifica datos de red y supuestos de capacidad.
+4. Documenta y calibra los parámetros con fundamento antes de interpretar resultados.
+5. Ejecuta **Lote formal ×30** cuando el diseño esté revisado.
+
+El modelo usa coeficientes iniciales para CPU, memoria, red, conexiones, inercia, ruido y mitigaciones. El pilotaje ayuda a revisar esos supuestos; por sí solo no demuestra que coincidan con el rendimiento real.
+
+### 5.3 Dashboard factorial y archivos
+
+Al finalizar se abre un dashboard con número de corridas, saturación máxima media, porcentaje de detecciones y demanda atendida media. Las gráficas resumen saturación por usuarios (separada por P1/P2), saturación por escenario, demanda atendida por estrategia y recuperación observada por estrategia.
+
+El tiempo medio de recuperación considera solo corridas que alcanzaron la regla de recuperación. Si una corrida no se recuperó durante los 120 segundos de observación, queda censurada: no se debe tratar como una recuperación de cero segundos.
+
+La ventana indica dónde están los resultados:
+
+- **Resumen CSV:** una fila por corrida con factores y métricas principales.
+- **Bitácora CSV comprimida (`.csv.gz`):** observaciones de cada segundo.
+- **Configuración JSON:** factores, parámetros y perfiles utilizados.
+
+Conserva los tres archivos juntos para poder relacionar las corridas con la configuración exacta.
+
+## 6. Archivos y resultados guardados
+
+Por defecto, el programa usa estas carpetas dentro del proyecto:
+
+- `datos/perfiles/`: carpeta del proyecto preparada para perfiles; al guardar desde la pestaña Perfil, el usuario elige dónde crear los archivos.
+- `datos/reportes/`: reportes TXT, CSV y resultados del experimento factorial.
+- `registros/app.log`: registro técnico de la aplicación.
+
+Al guardar manualmente un perfil desde Perfil puedes elegir otra carpeta. Los nombres de los reportes y resultados incluyen fecha y hora.
+
+## 7. Términos básicos
+
+- **req/s:** solicitudes virtuales por segundo.
+- **Mbps:** megabits por segundo, unidad de tráfico de red.
+- **P1:** perfil seleccionado como primer servidor modelado.
+- **P2:** perfil derivado de P1 para una comparación de capacidad según los supuestos del protocolo.
+- **Demanda atendida:** proporción de las solicitudes virtuales que el modelo calcula como servidas.
+- **Censura de recuperación:** no se observó recuperación durante la ventana disponible; solo se sabe que tardaría más que el tiempo observado.
+- **Semilla:** valor que permite repetir la misma variación aleatoria.
+
+Las capacidades dependen del perfil, tamaños de solicitud y respuesta, y coeficientes matemáticos. Para comparar escenarios, mantén iguales los demás valores y cambia solo los factores que quieras estudiar.
+
+## 8. Buenas prácticas
+
+1. Familiarízate con la aplicación usando el perfil de demostración.
+2. Conserva una copia del perfil utilizado y anota su procedencia.
+3. Revisa datos de CPU, memoria y red antes de experimentar.
+4. Cambia pocos parámetros por comparación para poder explicar el resultado.
+5. Ejecuta el pilotaje antes del lote formal y conserva su configuración.
+6. Separa en tus informes los valores medidos de los supuestos o derivados.
+7. Describe los resultados como comportamiento del modelo; no como prueba de caída, ataque o capacidad real del servidor.
+8. No compartas contraseñas, claves privadas ni datos sensibles.
+
+## 9. Solución de problemas
+
+| Problema | Qué revisar |
+|---|---|
+| No abre la ventana | Confirma Python y Tkinter. En Linux puede faltar `python3-tk`. |
+| Falta una biblioteca | Activa el entorno virtual e instala con `python -m pip install -r requirements.txt`. |
+| SSH rechaza la conexión | Comprueba host, puerto, usuario y método de autenticación. |
+| Host SSH desconocido | Verifica su huella por un canal confiable y añádela a `known_hosts`. |
+| No carga el perfil JSON | Usa un archivo JSON exportado por el sistema y comprueba que no esté incompleto. |
+| No se puede exportar | Ejecuta una simulación y confirma que haya muestras. |
+| No hay detección o recuperación | Puede que no se alcanzara el umbral o que faltara tiempo de observación; revisa las gráficas y los datos. |
+| El experimento tarda | Procesa miles de corridas. Observa el avance y no cierres la aplicación. |
+
+## 10. Estructura del proyecto
 
 ```text
-main.py
-app/models/       dataclasses de perfil y configuración
-app/ssh/          conexión segura y comandos fijos
-app/profiler/     parseo de diagnósticos
-app/simulation/   tráfico normal y bot, servidor virtual, detección y mitigación
-app/reports/      TXT, JSON y CSV
-app/gui/          vistas Tkinter y gráficas Matplotlib
-data/profiles/    perfiles exportados
-data/reports/     reportes y resultados
-logs/             app.log
+principal.py                         Inicio de la aplicación
+aplicacion/
+  interfaz/                          Pantallas y dashboards
+  modelos/                           Perfiles y configuración
+  perfilador/                        Interpretación de diagnósticos
+  conexion_ssh/                      Consulta SSH de solo lectura
+  simulacion/                        Modelos de carga, servidor y mitigación
+  reportes/                          Exportación de perfiles y resultados
+  ejecutor_experimental.py           Matriz factorial del protocolo
+pruebas/                              Pruebas automatizadas
+datos/
+  perfiles/                           Perfiles guardados
+  reportes/                           Reportes y resultados
+registros/                            Registro técnico
 ```
