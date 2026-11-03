@@ -1,7 +1,15 @@
+# Entornos virtuales
+venv/
 .venv/
+
+# Caché de Python
 __pycache__/
 *.py[cod]
+
+# Logs
 logs/*.log
+
+# Datos generados
 data/profiles/*.json
 data/profiles/*.txt
 data/reports/*.csv
