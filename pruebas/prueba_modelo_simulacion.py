@@ -70,7 +70,7 @@ class SimulationModelTests(unittest.TestCase):
             max_users=1000,
             duration_seconds=2,
             scenario="Repentino",
-            mitigation=MitigationConfig(selected=("CDN / Caching", "Edge / Scrubbing"), cdn_hit_ratio=80, edge_filter_percent=50),
+            mitigation=MitigationConfig(selected=("CDN / Caching", "Edge / Scrubbing"), cdn_hit_ratio=80, edge_filter_percent=50, anomaly_window_seconds=1),
         )
         sample = SimulationEngine(demo_profile(), config).run().samples[-1]
         self.assertLess(sample.traffic_to_origin_mbps, sample.generated_traffic_mbps)

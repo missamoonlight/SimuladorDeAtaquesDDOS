@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import tkinter as tk
-from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
-from aplicacion.interfaz.componentes_interfaz import PALETTE, labeled_entry
+from aplicacion.interfaz.componentes_interfaz import PALETTE
 
 
 class LoginView(ttk.Frame):
@@ -20,43 +19,84 @@ class LoginView(ttk.Frame):
         self.password = tk.StringVar()
         self.key_file = tk.StringVar()
         self.auth = tk.StringVar(value="Contraseña")
-        self.status = tk.StringVar(value="Listo. La simulación nunca genera tráfico remoto.")
+        self.status = tk.StringVar(value="Listo.")
         self._build()
 
     def _build(self):
         self.columnconfigure(0, weight=1)
-        ttk.Label(self, text="SIMULADOR DE RESILIENCIA Y CAPACIDAD DE SERVIDORES", style="Title.TLabel").grid(row=0, column=0, sticky="w", pady=(12, 2))
-        ttk.Label(self, text="Evaluación segura mediante perfilado SSH y simulación local", style="Subtitle.TLabel").grid(row=1, column=0, sticky="w", pady=(0, 14))
-        warning = tk.Label(self, text="⚠ MODO SEGURO\nEl servidor solo se consulta mediante comandos de diagnóstico de lectura.\nLa simulación NO genera tráfico hacia el servidor.", bg="#2c2413", fg=PALETTE["amber"], justify="left", anchor="w", padx=14, pady=10)
-        warning.grid(row=2, column=0, sticky="ew", pady=(0, 12))
+        self.rowconfigure(2, weight=1)
+        ttk.Label(self, text="CONEXIÓN Y PERFIL", style="Title.TLabel").grid(row=0, column=0, sticky="w", pady=(12, 8))
         frame = ttk.LabelFrame(self, text="CONEXIÓN SSH", padding=14)
-        frame.grid(row=3, column=0, sticky="new")
+        frame.grid(row=1, column=0, sticky="new", pady=(8, 0))
         frame.columnconfigure(1, weight=1)
         frame.columnconfigure(3, weight=1)
-        labeled_entry(frame, "Host / Dirección IP", self.host, 0, 0)
-        labeled_entry(frame, "Puerto SSH", self.port, 0, 2, width=8)
-        labeled_entry(frame, "Usuario", self.username, 1, 0)
-        ttk.Label(frame, text="Método de autenticación").grid(row=1, column=2, sticky="w", padx=6, pady=5)
+        ttk.Label(frame, text="Host / Dirección IP").grid(row=0, column=0, sticky="w", padx=6, pady=5)
+        ttk.Entry(frame, textvariable=self.host).grid(row=0, column=1, sticky="ew", padx=6, pady=5)
+        ttk.Label(frame, text="Puerto SSH").grid(row=0, column=2, sticky="w", padx=6, pady=5)
+        ttk.Entry(frame, textvariable=self.port, width=8).grid(row=0, column=3, sticky="ew", padx=6, pady=5)
+        ttk.Label(frame, text="Usuario").grid(row=1, column=0, sticky="w", padx=6, pady=5)
+        ttk.Entry(frame, textvariable=self.username).grid(row=1, column=1, columnspan=3, sticky="ew", padx=6, pady=5)
+        ttk.Label(frame, text="Método de autenticación").grid(row=2, column=0, sticky="w", padx=6, pady=5)
         auth = ttk.Combobox(frame, textvariable=self.auth, values=("Contraseña", "Clave SSH"), state="readonly", width=17)
-        auth.grid(row=1, column=3, sticky="ew", padx=6, pady=5)
-        labeled_entry(frame, "Contraseña", self.password, 2, 0, show="*")
-        labeled_entry(frame, "Archivo de clave SSH", self.key_file, 3, 0, width=35)
-        ttk.Button(frame, text="Examinar", command=self._browse_key).grid(row=3, column=4, padx=6)
+        auth.grid(row=2, column=1, columnspan=3, sticky="ew", padx=6, pady=5)
+        self.password_label = ttk.Label(frame, text="Contraseña")
+        self.password_label.grid(row=3, column=0, sticky="w", padx=6, pady=5)
+        self.password_entry = ttk.Entry(frame, textvariable=self.password, show="*")
+        self.password_entry.grid(row=3, column=1, columnspan=3, sticky="ew", padx=6, pady=5)
+        self.key_label = ttk.Label(frame, text="Archivo de clave SSH")
+        self.key_entry = ttk.Entry(frame, textvariable=self.key_file)
+        self.key_button = ttk.Button(frame, text="Examinar…", command=self._browse_key)
+        self.key_label.grid(row=3, column=0, sticky="w", padx=6, pady=5)
+        self.key_entry.grid(row=3, column=1, columnspan=2, sticky="ew", padx=6, pady=5)
+        self.key_button.grid(row=3, column=3, sticky="w", padx=6, pady=5)
+        self.auth_help = ttk.Label(frame, text="Usa la contraseña de la cuenta del servidor.", foreground=PALETTE["muted"], wraplength=460)
+        self.auth_help.grid(row=4, column=0, columnspan=4, sticky="w", padx=6, pady=(0, 5))
+        auth.bind("<<ComboboxSelected>>", self._auth_changed)
+        self._auth_changed()
         actions = ttk.Frame(frame)
-        actions.grid(row=4, column=0, columnspan=5, sticky="w", pady=(12, 0))
-        self.connect_button = ttk.Button(actions, text="CONECTAR / OBTENER PERFIL", command=self.on_collect)
-        self.connect_button.pack(side="left")
-        ttk.Button(actions, text="MODO DEMOSTRACIÓN", command=self.on_demo).pack(side="left", padx=8)
-        ttk.Button(actions, text="CARGAR PERFIL JSON", command=self.on_import).pack(side="left")
-        ttk.Label(self, textvariable=self.status).grid(row=4, column=0, sticky="w", pady=12)
-        security = ttk.LabelFrame(self, text="SEGURIDAD", padding=12)
-        security.grid(row=5, column=0, sticky="ew", pady=(10, 0))
-        ttk.Label(security, text="✓ SSH de solo lectura    ✓ Sin comandos arbitrarios    ✓ Credenciales no almacenadas\n✓ Se rechazan hosts desconocidos; agrega su huella verificada a known_hosts antes de conectar").pack(anchor="w")
+        actions.grid(row=5, column=0, columnspan=4, sticky="ew", pady=(12, 0))
+        actions.columnconfigure(0, weight=1)
+        actions.columnconfigure(1, weight=1)
+        self.connect_button = ttk.Button(actions, text="CONECTAR Y OBTENER PERFIL", command=self.on_collect, style="Primary.TButton")
+        self.connect_button.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 6))
+        self.demo_button = ttk.Button(actions, text="USAR DEMOSTRACI\u00d3N", command=self.on_demo)
+        self.demo_button.grid(row=1, column=0, sticky="ew", padx=(0, 4))
+        self.import_button = ttk.Button(actions, text="CARGAR PERFIL JSON", command=self.on_import)
+        self.import_button.grid(row=1, column=1, sticky="ew", padx=(4, 0))
+        guide = ttk.LabelFrame(self, text="CÓMO EMPEZAR", padding=(12, 10))
+        guide.grid(row=2, column=0, sticky="new", pady=(14, 0))
+        for row, text in enumerate((
+            "1. Conecta por SSH o carga un perfil guardado.",
+            "2. Revisa los recursos detectados en el panel Perfil.",
+            "3. Continúa a Simulación para configurar el escenario.",
+        )):
+            ttk.Label(guide, text=text, style="Subtitle.TLabel", wraplength=460).grid(row=row, column=0, sticky="w", pady=3)
+        ttk.Label(guide, text="La simulación usa un modelo local; no envía tráfico al servidor.", wraplength=460).grid(row=3, column=0, sticky="w", pady=(9, 2))
+        ttk.Label(self, textvariable=self.status, style="Subtitle.TLabel", wraplength=480).grid(row=3, column=0, sticky="sw", pady=(12, 8))
 
     def _browse_key(self):
-        path = filedialog.askopenfilename(title="Seleccionar clave privada SSH")
+        path = filedialog.askopenfilename(
+            title="Seleccionar clave privada SSH",
+            filetypes=(("Claves privadas SSH", "*.pem *.key id_*"), ("Todos los archivos", "*.*")),
+        )
         if path:
             self.key_file.set(path)
+
+    def _auth_changed(self, _event=None):
+        if self.auth.get() == "Clave SSH":
+            self.password_label.grid_remove()
+            self.password_entry.grid_remove()
+            self.key_label.grid()
+            self.key_entry.grid()
+            self.key_button.grid()
+            self.auth_help.configure(text="Selecciona tu clave privada. Su clave pública correspondiente debe estar autorizada en el servidor.")
+        else:
+            self.key_label.grid_remove()
+            self.key_entry.grid_remove()
+            self.key_button.grid_remove()
+            self.password_label.grid()
+            self.password_entry.grid()
+            self.auth_help.configure(text="Usa la contraseña de la cuenta del servidor.")
 
     def values(self) -> dict[str, str]:
         return {"host": self.host.get().strip(), "port": self.port.get().strip(), "username": self.username.get().strip(), "password": self.password.get(), "key_file": self.key_file.get().strip(), "auth": self.auth.get()}
@@ -65,4 +105,6 @@ class LoginView(ttk.Frame):
         self.status.set(value)
 
     def busy(self, value: bool):
-        self.connect_button.configure(state="disabled" if value else "normal")
+        state = "disabled" if value else "normal"
+        for button in (self.connect_button, self.demo_button, self.import_button):
+            button.configure(state=state)

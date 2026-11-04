@@ -26,19 +26,28 @@ logging.basicConfig(filename=ROOT / "registros" / "app.log", level=logging.INFO,
 class ResilienceApp:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
-        self.root.title("Simulador de Resiliencia y Capacidad de Servidores")
-        self.root.geometry("1200x820")
-        self.root.minsize(1000, 750)
+        self.root.title("Simulador de resiliencia")
+        self.root.geometry("1180x800")
+        self.root.minsize(980, 680)
         configure_style(root)
         self.profile: ServerProfile | None = None
         self.notebook = ttk.Notebook(root)
-        self.notebook.pack(fill="both", expand=True, padx=14, pady=10)
-        self.login = LoginView(self.notebook, self.collect_profile, self.load_demo, self.import_profile, self.save_current_profile)
-        self.profile_view = ProfileView(self.notebook, self.open_simulator, self.open_login)
+        self.notebook.pack(fill="both", expand=True, padx=18, pady=(10, 16))
+
+        self.connection_profile = ttk.Frame(self.notebook)
+        self.connection_profile.columnconfigure(0, weight=1, uniform="panels")
+        self.connection_profile.columnconfigure(1, weight=0)
+        self.connection_profile.columnconfigure(2, weight=1, uniform="panels")
+        self.connection_profile.rowconfigure(0, weight=1)
+        self.login = LoginView(self.connection_profile, self.collect_profile, self.load_demo, self.import_profile, self.save_current_profile)
+        self.profile_view = ProfileView(self.connection_profile, self.open_simulator, self.open_login)
+        self.login.grid(row=0, column=0, sticky="nsew", padx=(8, 5), pady=8)
+        ttk.Separator(self.connection_profile, orient="vertical").grid(row=0, column=1, sticky="nsw")
+        self.profile_view.grid(row=0, column=2, sticky="nsew", padx=(8, 5), pady=8)
         self.simulator = SimulatorView(self.notebook, self.open_profile)
-        self.notebook.add(self.login, text="  CONEXIÓN  ")
-        self.notebook.add(self.profile_view, text="  PERFIL  ")
+        self.notebook.add(self.connection_profile, text="  CONEXIÓN Y PERFIL  ")
         self.notebook.add(self.simulator, text="  SIMULACIÓN  ")
+        self.notebook.tab(self.simulator, state="disabled")
         self.notebook.select(0)
 
     def collect_profile(self) -> None:
@@ -60,7 +69,9 @@ class ResilienceApp:
 
     def _collect_worker(self, values: dict[str, str], port: int) -> None:
         try:
-            manager = SSHManager(values["host"], port, values["username"], values["password"], values["key_file"])
+            password = values["password"] if values["auth"] == "Contraseña" else ""
+            key_file = values["key_file"] if values["auth"] == "Clave SSH" else ""
+            manager = SSHManager(values["host"], port, values["username"], password, key_file)
             raw = manager.collect()
             profile = ServerProfiler().build_profile(raw, source=f"SSH: {values['host']}")
         except (SSHConnectionError, OSError, ValueError) as error:
@@ -103,6 +114,7 @@ class ResilienceApp:
         self.profile = profile
         self.profile_view.set_profile(profile)
         self.simulator.set_profile(profile)
+        self.notebook.tab(self.simulator, state="normal")
 
     def save_current_profile(self) -> None:
         if self.profile:
@@ -114,13 +126,13 @@ class ResilienceApp:
         self.notebook.select(0)
 
     def open_profile(self) -> None:
-        self.notebook.select(1)
+        self.notebook.select(0)
 
     def open_simulator(self) -> None:
         if not self.profile:
             messagebox.showinfo("Sin perfil", "Carga un perfil antes de simular.")
             return
-        self.notebook.select(2)
+        self.notebook.select(self.simulator)
 
 
 def main() -> None:

@@ -148,6 +148,8 @@ class SimulationEngine:
             if self._stop.is_set():
                 break
             self._pause.wait()
+            if self.config.real_time and not self._wait_real_second():
+                break
             generated_users = self._users_at(second)
             generated_requests = self._generated_requests_at(second, generated_users)
             legitimate_ratio = max(0.20, min(1.0, baseline / max(generated_requests, baseline)))
@@ -211,11 +213,33 @@ class SimulationEngine:
             result.sources_blocked = max(result.sources_blocked, sample.sources_blocked)
             if on_sample:
                 on_sample(sample)
-            time.sleep(0.04)
+            if not self.config.real_time:
+                time.sleep(0.04)
         return result
+
+    def _wait_real_second(self) -> bool:
+        """Wait one active wall-clock second, excluding time spent paused."""
+        remaining = 1.0
+        while remaining > 0:
+            if self._stop.is_set():
+                return False
+            if not self._pause.is_set():
+                while not self._pause.wait(0.05):
+                    if self._stop.is_set():
+                        return False
+                continue
+            interval = min(remaining, 0.05)
+            started = time.monotonic()
+            if self._stop.wait(interval):
+                return False
+            if self._pause.is_set():
+                remaining -= time.monotonic() - started
+        return not self._stop.is_set()
 
     def _pipeline(self, second, users, generated, legitimate, malicious, users_legitimate, users_suspicious, detected, rng, on_event):
         mitigation = self.config.mitigation
+        if not detected or not self.config.mitigation_enabled:
+            mitigation = replace(mitigation, selected=())
         after_edge = generated
         edge_latency = 0.0
         if mitigation.has("Edge / Scrubbing"):

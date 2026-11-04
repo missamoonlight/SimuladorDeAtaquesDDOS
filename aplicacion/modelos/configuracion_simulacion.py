@@ -117,6 +117,7 @@ class SimulationConfig:
     normal_duration_seconds: int = 0
     detection_delay_seconds: int = 0
     bandwidth_mbps: float = 0.0
+    real_time: bool = False
     mitigation: MitigationConfig = field(default_factory=MitigationConfig)
 
     def validate(self) -> None:
