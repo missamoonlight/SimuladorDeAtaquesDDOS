@@ -1,0 +1,20 @@
+# Entornos virtuales
+venv/
+.venv/
+
+# Caché de Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Logs
+registros/*.log
+
+# Datos generados
+datos/perfiles/*.json
+datos/perfiles/*.txt
+datos/reportes/*.csv
+datos/reportes/*.csv.gz
+datos/reportes/*.txt
+datos/reportes/experimento_configuracion_*.json
